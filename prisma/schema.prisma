@@ -1,0 +1,186 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Accounts 테이블 모델
+model Account {
+  id               String            @id @default(uuid())
+  username         String            @unique
+  password         String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  lastLogin        DateTime?
+  isDeleted        Boolean           @default(false)
+  comment          String?
+  accountDeletions AccountDeletion[]
+  Members          Members[]
+}
+
+// AccountDeletions 테이블 모델
+model AccountDeletion {
+  deletionId     Int      @id @default(autoincrement())
+  accountId      String   @map("account_id")
+  deletedAt      DateTime @default(now())
+  deletionReason String?
+  account        Account  @relation(fields: [accountId], references: [id])
+}
+
+// Members 테이블 모델
+model Members {
+  id                     String             @id @default(uuid()) @map("id")
+  accountId              String             @map("account_id")
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  name                   String
+  position               String
+  hireDate               DateTime?          @map("hire_date")
+  birthDate              DateTime?          @map("birth_date")
+  contactNumber          String?            @map("contact_number")
+  image                  Bytes?             @map("image")
+  email                  String?
+  emergencyContactNumber String?            @map("emergency_contact_number")
+  address                String?
+  notes                  String?
+  account                Account            @relation(fields: [accountId], references: [id])
+  MemberPermission       MemberPermission[]
+  Notification           Notification[]
+  WeeklyReports          WeeklyReports[]
+  ExpenseReport          ExpenseReport[]
+  LeaveRequest           LeaveRequest[]
+  CalendarGroup          CalendarGroup[]
+  CalendarEvent          CalendarEvent[]
+}
+
+// Features 테이블 모델
+model Feature {
+  id                String              @id @default(uuid())
+  name              String              @unique
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  isDeleted         Boolean             @default(false)
+  notes             String?
+  FeaturePermission FeaturePermission[]
+}
+
+// Permissions 테이블 모델
+model Permission {
+  id                String              @id @default(uuid())
+  name              String              @unique
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  isDeleted         Boolean             @default(false)
+  notes             String?
+  MemberPermission  MemberPermission[]
+  FeaturePermission FeaturePermission[]
+}
+
+// Members_Permissions 테이블 모델
+model MemberPermission {
+  memberId     String     @map("member_id")
+  permissionId String     @map("permission_id")
+  member       Members    @relation(fields: [memberId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([memberId, permissionId])
+}
+
+// Feature_Permissions 테이블 모델
+model FeaturePermission {
+  featureId    String     @map("feature_id")
+  permissionId String     @map("permission_id")
+  feature      Feature    @relation(fields: [featureId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([featureId, permissionId])
+}
+
+// Notifications 테이블 모델
+model Notification {
+  id        String   @id @default(uuid())
+  createdBy String   @map("created_by")
+  title     String
+  content   String
+  type      String   @map("type")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDeleted Boolean  @default(false)
+  notes     String?
+  member    Members  @relation(fields: [createdBy], references: [id])
+}
+
+// WeeklyReports 테이블 모델
+model WeeklyReports {
+  id         String   @id @default(uuid()) @map("id")
+  createdBy  String   @map("created_by")
+  resolvedBy String?  @map("resolved_by")
+  reportDate DateTime @map("report_date")
+  content    String   @map("content")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  member     Members  @relation(fields: [createdBy], references: [id])
+}
+
+// ExpenseReports 테이블 모델
+model ExpenseReport {
+  id          String   @id @default(uuid())
+  createdBy   String   @map("created_by")
+  resolvedBy  String   @map("resolved_by")
+  reportDate  DateTime @map("report_date")
+  totalAmount Float    @map("total_amount")
+  approved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  member      Members  @relation(fields: [createdBy], references: [id])
+}
+
+// LeaveRequests 테이블 모델
+model LeaveRequest {
+  id         String   @id @default(uuid())
+  createdBy  String   @map("created_by")
+  resolvedBy String   @map("resolved_by")
+  startDate  DateTime @map("start_date")
+  endDate    DateTime @map("end_date")
+  reason     String   @map("reason")
+  approved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  member     Members  @relation(fields: [createdBy], references: [id])
+}
+
+// CalendarGroups 테이블 모델
+model CalendarGroup {
+  id            String          @id @default(uuid())
+  name          String
+  description   String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  createdBy     String          @map("created_by")
+  member        Members         @relation(fields: [createdBy], references: [id])
+  CalendarEvent CalendarEvent[]
+}
+
+// CalendarEvents 테이블 모델
+model CalendarEvent {
+  id              String         @id @default(uuid())
+  createdBy       String         @map("created_by")
+  calendarGroupId String?        @map("calendar_group_id")
+  title           String
+  description     String?
+  startDate       DateTime       @map("start_date")
+  endDate         DateTime       @map("end_date")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  calendarGroup   CalendarGroup? @relation(fields: [calendarGroupId], references: [id])
+  member          Members        @relation(fields: [createdBy], references: [id])
+}
